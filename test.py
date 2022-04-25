@@ -1,6 +1,6 @@
 # import bpy
 
-from asyncio import Handle
+import bpy
 import csv
 
 
@@ -8,7 +8,8 @@ import csv
 # In metahuman these end with _r or _l
 # Left is parent, right is child
 # Each tuple represents a bone
-hand_bone_structure = {
+hand_bone_structure = [
+    ("Bone", "hand"),
     ("hand", "index_metacarpal"),
         ("index_metacarpal", "index_01"),
             ("index_01", "index_02"),
@@ -38,10 +39,10 @@ hand_bone_structure = {
 
     ("hand", "wrist_inner"),
     ("hand", "wrist_outer")
-}
+]
 
 # Index of every bone in the mediapipe representation of hand
-hand_media_pipe_index = {
+hand_media_pipe_index = [
     ("WRIST", 0),
     ("THUMB_CMC", 1),
     ("THUMB_MCP", 2),
@@ -63,13 +64,37 @@ hand_media_pipe_index = {
     ("PINKY_PIP", 18),
     ("PINKY_DIP", 19),
     ("PINKY_TIP", 20)
-}
+]
 
 # Mapping from Mediapipe to the point of the MetaHuman
-hand_point_mapping = {
+hand_point_mapping = [
     ("WRIST", "hand"),
     # TODO rest...
-}
+]
+
+
+def create_armature(name = "", last_char = ""):
+    bpy.ops.object.armature_add()
+    armature = bpy.context.active_object
+    armature.name = name + last_char
+    armature.pose.bones["Bone"].name = armature.pose.bones["Bone"].name + last_char
+
+    for tuple in hand_bone_structure:
+        parent, child = tuple
+        child_name = child + last_char
+        parent_name = parent + last_char
+
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.armature.bone_primitive_add(name=child)
+
+        bpy.ops.object.mode_st(mode='POSE')
+        bone_constraint = armature.pose.bones[child_name].constraints.new('COPY_LOCATION')
+        bone_constraint.target = bpy.data.objects(child_name)
+
+        bone_constraint = armature.pose.bones[child_name].constraints.new('COPY_LOCATION')
+        bone_constraint.target = bpy.data.objects(parent_name)
+
+
 
 
 # Outputs list of tuple with bone name and array of locations
@@ -103,5 +128,5 @@ def csv_to_arrays(csv_file):
 
 
 
-
+create_armature(name="hand", last_char="_r")
 input_data = csv_to_arrays("mediapipe_data/LEFT_HandLandmarks.csv")
