@@ -2,6 +2,7 @@
 
 import bpy
 import csv
+# import numpy as np
 
 
 
@@ -41,6 +42,32 @@ hand_bone_structure = [
     ("hand", "wrist_outer")
 ]
 
+hand_bone_structure_mp = [
+    ("WRIST", "THUMB_MCP"),
+        ("THUMB_MCP", "THUMB_IP"),
+            ("THUMB_IP", "THUMB_TIP"),
+
+    ("WRIST", "INDEX_FINGER_MCP"),
+        ("INDEX_FINGER_MCP", "INDEX_FINGER_PIP"),
+            ("INDEX_FINGER_PIP", "INDEX_FINGER_DIP"),
+                ("INDEX_FINGER_DIP", "INDEX_FINGER_TIP"),
+
+    ("WRIST", "MIDDLE_FINGER_MCP"),
+        ("MIDDLE_FINGER_MCP", "MIDDLE_FINGER_PIP"),
+            ("MIDDLE_FINGER_PIP", "MIDDLE_FINGER_DIP"),
+                ("MIDDLE_FINGER_DIP", "MIDDLE_FINGER_TIP"),
+
+    ("WRIST", "RING_FINGER_MCP"),
+        ("RING_FINGER_MCP", "RING_FINGER_PIP"),
+            ("RING_FINGER_PIP", "RING_FINGER_DIP"),
+                ("RING_FINGER_DIP", "RING_FINGER_TIP"),
+
+    ("WRIST", "PINKY_MCP"),
+        ("PINKY_MCP", "PINKY_PIP"),
+            ("PINKY_PIP", "PINKY_DIP"),
+                ("PINKY_DIP", "PINKY_TIP")
+]
+
 # Index of every bone in the mediapipe representation of hand
 hand_media_pipe_index = [
     ("WRIST", 0),
@@ -69,30 +96,79 @@ hand_media_pipe_index = [
 # Mapping from Mediapipe to the point of the MetaHuman
 hand_point_mapping = [
     ("WRIST", "hand"),
-    # TODO rest...
+    ("THUMB_CMC", "thumb_01"),
+    ("THUMB_MCP", "thumb_02"),
+    ("THUMB_IP", "thumb_03"),
+    ("INDEX_FINGER_MCP", "index_01"),
+    ("INDEX_FINGER_PIP", "index_02"),
+    ("INDEX_FINGER_DIP", "index_03"),
+    ("MIDDLE_FINGER_MCP", "middle_01"),
+    ("MIDDLE_FINGER_PIP", "middle_02"),
+    ("MIDDLE_FINGER_DIP", "middle_03"),
+    ("RING_FINGER_MCP", "ring_01_r"),
+    ("RING_FINGER_PIP", "ring_02_r"),
+    ("RING_FINGER_DIP", "ring_03_r"),
+    ("PINKY_MCP", "pinky_01_r"),
+    ("PINKY_PIP", "pinky_02_r"),
+    ("PINKY_TIP", "pinky_03_r")
 ]
+
+def isObjectInScene(name):
+    for o in bpy.context.scene.objects:
+        if o.name == name:
+            return True
+
+    return False
+
+def create_landmarks(data, last_char = ""):
+    # TODO: Use mappings for name
+    for tupl in data:
+        name, locations = tupl
+        name = name + last_char
+
+        if(isObjectInScene(name) != True):
+            bpy.ops.mesh.primitive_ico_sphere_add(enter_editmode=False, radius=0.1)
+            bpy.context.object.name = name
+
+        for idx, location in enumerate(locations):
+            if(location[0] != 0.0):
+                x = location[0] * 20
+                y = location[1] * 20
+                z = location[2] * 20
+
+                obj = bpy.context.scene.objects[name]
+                obj.location = [x, y, z]
+                obj.keyframe_insert(data_path='location', frame=idx)
+
+
+
+
+
 
 
 def create_armature(name = "", last_char = ""):
+    bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.armature_add()
     armature = bpy.context.active_object
     armature.name = name + last_char
     armature.pose.bones["Bone"].name = armature.pose.bones["Bone"].name + last_char
 
-    for tuple in hand_bone_structure:
+    for tuple in hand_bone_structure_mp:
         parent, child = tuple
         child_name = child + last_char
         parent_name = parent + last_char
 
         bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.armature.bone_primitive_add(name=child)
+        bpy.ops.armature.bone_primitive_add(name=child_name)
 
-        bpy.ops.object.mode_st(mode='POSE')
+        bpy.ops.object.mode_set(mode='POSE')
         bone_constraint = armature.pose.bones[child_name].constraints.new('COPY_LOCATION')
-        bone_constraint.target = bpy.data.objects(child_name)
+        bone_constraint.target = bpy.data.objects[child_name]
 
-        bone_constraint = armature.pose.bones[child_name].constraints.new('COPY_LOCATION')
-        bone_constraint.target = bpy.data.objects(parent_name)
+        bone_constraint = armature.pose.bones[child_name].constraints.new('STRETCH_TO')
+        bone_constraint.target = bpy.data.objects[parent_name]
+        # bone_constraint = armature.pose.bones[child_name].constraints.new('CHILD_OF')
+        # bone_constraint.target = bpy.data.objects[parent_name]
 
 
 
@@ -128,5 +204,8 @@ def csv_to_arrays(csv_file):
 
 
 
-create_armature(name="hand", last_char="_r")
+# create_armature(name="hand", last_char="_r")
 input_data = csv_to_arrays("mediapipe_data/LEFT_HandLandmarks.csv")
+# print(input_data[0])
+create_landmarks(input_data, last_char="_r")
+create_armature(name="hand", last_char="_r")
