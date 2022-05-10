@@ -199,7 +199,7 @@ def isObjectInScene(name):
 
     return False
 
-def create_landmarks(data, last_char = ""):
+def create_landmarks(data, last_char = "", sample_rate=1):
     for tupl in data:
         name, locations = tupl
 
@@ -214,7 +214,16 @@ def create_landmarks(data, last_char = ""):
             bpy.ops.mesh.primitive_ico_sphere_add(enter_editmode=False, radius=0.1)
             bpy.context.object.name = name
 
+        counter = 0
         for idx, location in enumerate(locations):
+
+            if(sample_rate > 1):
+                counter += 1
+                if counter == sample_rate:
+                    counter = 0
+                else:
+                    continue
+
             if(location[0] != 0.0):
                 x = location[0] * 5
                 y = location[1] * 5
@@ -336,8 +345,14 @@ def csv_to_arrays(csv_file, target="hand"):
 
 # create_armature(name="hand", last_char="_r")
 # input_data = csv_to_arrays("mediapipe_data/LEFT_HandLandmarks.csv")
+
+# Maak arrays van de csv data
 input_data = csv_to_arrays("mediapipe_data/POSELandmarks.csv", target="pose")
-# print(input_data[0])
-create_landmarks(input_data)
+
+# Maak de landmarks in de scene
+create_landmarks(input_data, sample_rate=20)
+
+# Maak de bone structure die bij de punten hoort.
 create_armature(target="pose")
-map_rotation(mapping=unreal_mapping)
+
+# map_rotation(mapping=unreal_mapping)
