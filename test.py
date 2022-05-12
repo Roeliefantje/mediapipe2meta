@@ -4,6 +4,8 @@ import bpy
 import csv
 # import numpy as np
 
+from mathutils import Quaternion
+
 
 
 # In metahuman these end with _r or _l
@@ -69,13 +71,27 @@ hand_bone_structure_mp = [
 ]
 
 pose_bone_structure_mp = [
-  ("LEFT_SHOULDER", "LEFT_ELBOW"),
-  ("LEFT_ELBOW", "LEFT_WRIST"),
-  ("RIGHT_SHOULDER", "RIGHT_ELBOW"),
-  ("RIGHT_ELBOW", "RIGHT_WRIST"),
+    ("LEFT_SHOULDER", "LEFT_ELBOW"),
+    ("LEFT_ELBOW", "LEFT_WRIST"),
+    ("RIGHT_SHOULDER", "RIGHT_ELBOW"),
+    ("RIGHT_ELBOW", "RIGHT_WRIST"),
 
-  ("RIGHT_WRIST", "RIGHT_INDEX"), # hand bone right
-  ("LEFT_WRIST", "LEFT_INDEX"), # hand bone left
+    ("RIGHT_WRIST", "RIGHT_INDEX"), # hand bone right
+    ("LEFT_WRIST", "LEFT_INDEX"), # hand bone left
+    ("SPINE_TOP", "LEFT_SHOULDER", "LEFT_CLAVICLE"),
+    ("SPINE_TOP", "RIGHT_SHOULDER", "RIGHT_CLAVICLE"),
+    ("SPINE_BOTTOM", "SPINE_TOP", "SPINE"),
+    ("SPINE_BOTTOM", "RIGHT_HIP", "RIGHT_HIP"),
+    ("SPINE_BOTTOM", "LEFT_HIP", "LEFT_HIP"),
+    ("RIGHT_HIP", "RIGHT_KNEE", "RIGHT_LEG"),
+    ("LEFT_HIP", "LEFT_KNEE", "LEFT_LEG"),
+    ("RIGHT_KNEE", "RIGHT_ANKLE"),
+    ("LEFT_KNEE", "LEFT_ANKLE"),
+    ("RIGHT_ANKLE", "RIGHT_HEEL"),
+    ("LEFT_ANKLE", "LEFT_HEEL"),
+    ("RIGHT_HEEL", "RIGHT_FOOT_INDEX"),
+    ("LEFT_HEEL", "LEFT_FOOT_INDEX"),
+
 
 #   ("LEFT_SHOULDER", "RIGHT_SHOULDER"), # for left collar (invert all axes)
 #   ("RIGHT_SHOULDER", "LEFT_SHOULDER"), # for right collar (invert all axes)
@@ -146,9 +162,14 @@ pose_media_pipe_index = [
     ("RIGHT_FOOT_INDEX", 32)
 ]
 
+pose_virtual_landmarks= [
+    ("SPINE_BOTTOM", "LEFT_HIP", "RIGHT_HIP"),
+    ("SPINE_TOP", "LEFT_SHOULDER", "RIGHT_SHOULDER"),
+]
+
 
 # Mapping from Mediapipe to the point of the MetaHuman
-hand_point_mapping = [
+hand_point_mapping_metahuman = [
     ("WRIST", "hand"),
     ("THUMB_CMC", "thumb_01"),
     ("THUMB_MCP", "thumb_02"),
@@ -168,7 +189,7 @@ hand_point_mapping = [
 ]
 
 # Pose point mapping
-pose_point_mapping = [
+pose_point_mapping_metahuman = [
     ("LEFT_SHOULDER", "upperarm_l"),
     ("LEFT_ELBOW", "lowerarm_l"),
     ("LEFT_WRIST", "hand_l"),
@@ -179,16 +200,61 @@ pose_point_mapping = [
     # ("LEFT_KNEE", "shin_l"),
 ]
 
-unreal_mapping = hand_point_mapping + pose_point_mapping
+# Mapping from Mediapipe to the joints of the ReadyPlayerMeCharachter
+pose_point_mapping_readyplayerme = [
+    ("LEFT_SHOULDER", "LeftArm"),
+    ("LEFT_ELBOW", "LeftForeArm"),
+    ("LEFT_WRIST", "LeftHand"),
+    ("RIGHT_SHOULDER", "RightArm"),
+    ("RIGHT_ELBOW", "RightForeArm"),
+    ("RIGHT_WRIST", "RightHand"),
+    ("RIGHT_CLAVICLE", "RightShoulder"),
+    ("LEFT_CLAVICLE", "LeftShoulder"),
+    ("SPINE", "Hips"),
+    ("RIGHT_LEG", "RightUpLeg"),
+    ("LEFT_LEG", "LeftUpLeg"),
+    ("RIGHT_KNEE", "RightLeg"),
+    ("LEFT_KNEE", "LeftLeg"),
+    ("RIGHT_ANKLE", "RightFoot"),
+    ("LEFT_ANKLE", "LeftFoot")
+]
 
 
-def map_rotation(source_armature="pose", target_rig="f_med_nrw_body", mapping=unreal_mapping):
-    for map in pose_point_mapping:
-        rotation_copy_constr = bpy.data.objects[target_rig].children[1].pose.bones[map[1]].constraints.new(type='COPY_ROTATION')
+unreal_mapping = hand_point_mapping_metahuman + pose_point_mapping_metahuman
+
+
+def map_rotation(source_armature="motion_capture_armature", target_rig="Armature", mapping=pose_point_mapping_readyplayerme):
+
+
+    for map in mapping:
+        rotation_copy_constr = bpy.data.objects[target_rig].pose.bones[map[1]].constraints.new(type='TRANSFORM')
+        # rotation_copy_constr = bpy.data.objects[target_rig].children[1].pose.bones[map[1]].constraints.new(type='COPY_ROTATION')
         # The target of the copy rotation is the armature of the motion capture
         rotation_copy_constr.target = bpy.data.objects[source_armature]
         # This is set just by a string value of the subtargets name
         rotation_copy_constr.subtarget = map[0]
+
+
+        rotation_copy_constr.target_space = 'WORLD'
+        rotation_copy_constr.map_from = 'ROTATION'
+        rotation_copy_constr.from_rotation_mode = 'XYZ'
+        rotation_copy_constr.from_min_x_rot = -6.283185307179586
+        rotation_copy_constr.from_max_x_rot = 6.283185307179586
+        rotation_copy_constr.from_min_y_rot = -6.283185307179586
+        rotation_copy_constr.from_max_y_rot = 6.283185307179586
+        rotation_copy_constr.from_min_z_rot = -6.283185307179586
+        rotation_copy_constr.from_max_z_rot = 6.283185307179586
+
+        rotation_copy_constr.map_to = 'ROTATION'
+        rotation_copy_constr.to_euler_order = 'XYZ'
+        rotation_copy_constr.to_min_x_rot = -6.283185307179586
+        rotation_copy_constr.to_max_x_rot = 6.283185307179586
+        rotation_copy_constr.to_min_y_rot = -6.283185307179586
+        rotation_copy_constr.to_max_y_rot = 6.283185307179586
+        rotation_copy_constr.to_min_z_rot = -6.283185307179586
+        rotation_copy_constr.to_max_z_rot = 6.283185307179586
+        rotation_copy_constr.mix_mode_rot = 'REPLACE'
+
 
 
 
@@ -203,18 +269,15 @@ def create_landmarks(data, last_char = "", sample_rate=1):
     for tupl in data:
         name, locations = tupl
 
-#        for tup in unreal_mapping:
-#            if tup[0] == name:
-#                name = tup[1]
-#                break
-
         name = name + last_char
 
         if(isObjectInScene(name) != True):
             bpy.ops.mesh.primitive_ico_sphere_add(enter_editmode=False, radius=0.1)
             bpy.context.object.name = name
 
-        counter = 0
+        # Have the counter start one before the sample rate,
+        # this way it will always animate the first frame.
+        counter = sample_rate - 1
         for idx, location in enumerate(locations):
 
             if(sample_rate > 1):
@@ -232,6 +295,33 @@ def create_landmarks(data, last_char = "", sample_rate=1):
                 obj = bpy.context.scene.objects[name]
                 obj.location = [x, y, z]
                 obj.keyframe_insert(data_path='location', frame=idx)
+
+# Create virtual landmark data for spine locations
+def create_virtual_landmark_data(data, target="pose"):
+    if target != "pose":
+        return
+
+    for tupl in pose_virtual_landmarks:
+        name, landmark1, landmark2 = tupl
+
+        points_landmark1 = []
+        points_landmark2 = []
+        for values in data:
+            landmark_name, locations = values
+            if landmark_name == landmark1:
+                points_landmark1 = locations
+            if landmark_name == landmark2:
+                points_landmark2 = locations
+
+        new_locations = []
+        for idx, location in enumerate(points_landmark1):
+            new_location_x = (location[0] + points_landmark2[idx][0]) / 2
+            new_location_y = (location[1] + points_landmark2[idx][1]) / 2
+            new_location_z = (location[2] + points_landmark2[idx][2]) / 2
+            new_locations.append([new_location_x, new_location_y, new_location_z])
+        data.append((name, new_locations))
+
+    return data
 
 
 
@@ -251,55 +341,27 @@ def create_armature(name = "motion_capture_armature", last_char = "", target="ha
         array = pose_bone_structure_mp
 
     for tuple in array:
-        parent, child = tuple
-        # for tup in unreal_mapping:
-        #     if tup[0] == child:
-        #         child = tup[1]
-        #     if tup[0] == parent:
-        #         parent = tup[1]
+        parent_name = tuple[0] + last_char
+        child_name = tuple[1] + last_char
 
-        child_name = child + last_char
-        parent_name = parent + last_char
+        # If bone_name is specified use that name instead.
+        bone_name = parent_name
+        if len(tuple) == 3:
+            bone_name = tuple[2] + last_char
 
         bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.armature.bone_primitive_add(name=parent_name)
+        bpy.ops.armature.bone_primitive_add(name=bone_name)
 
         bpy.ops.object.mode_set(mode='POSE')
-        bone_constraint = armature.pose.bones[parent_name].constraints.new('COPY_LOCATION')
+        bone_constraint = armature.pose.bones[bone_name].constraints.new('COPY_LOCATION')
         bone_constraint.target = bpy.data.objects[parent_name]
 
-        bone_constraint = armature.pose.bones[parent_name].constraints.new('STRETCH_TO')
+        bone_constraint = armature.pose.bones[bone_name].constraints.new('STRETCH_TO')
         bone_constraint.target = bpy.data.objects[child_name]
         bone_constraint.rest_length = 1.0
         bone_constraint.volume = 'NO_VOLUME'
         # bone_constraint = armature.pose.bones[child_name].constraints.new('CHILD_OF')
         # bone_constraint.target = bpy.data.objects[parent_name]
-
-
-# def map_animation_to_unreal_skel(input_data, name="f_med_nrw_body"):
-#     obj =  bpy.context.scene.objects[name]
-#     pose = obj.children[1].pose
-#     # pelvis_bone = pose.bones["pelvis"]
-#     # pelvis_bone.location.x = 5
-#     # pelvis_bone.keyframe_insert(data_path='location', frame=0)
-#     for name, keyframes in input_data:
-#         unreal_name = ""
-#         for tup in unreal_mapping:
-#             if tup[0] == name:
-#                 unreal_name = tup[1]
-#                 break
-#         if(unreal_name != ""):
-#             bone = pose.bones[unreal_name]
-#             for idx, location in enumerate(keyframes):
-#                 # bone.location = location
-#                 # bpy.context.scene.objects.active = bone
-#                 override = bpy.context.copy()
-#                 override['active_object'] = bone
-#                 bpy.ops.transform.translate(value=location)
-#                 # bone.transform.translate(value=location)
-#                 bone.keyframe_insert(data_path='location', frame=idx)
-
-
 
 
 # Outputs list of tuple with bone name and array of locations
@@ -340,6 +402,8 @@ def csv_to_arrays(csv_file, target="hand"):
 
     return output
 
+def rotate_bvh_armatures(armature="f_med_nrw_body"):
+    bpy.data.objects[armature].rotation_euler[0] = -3.66519 # -210d
 
 
 
@@ -348,11 +412,12 @@ def csv_to_arrays(csv_file, target="hand"):
 
 # Maak arrays van de csv data
 input_data = csv_to_arrays("mediapipe_data/POSELandmarks.csv", target="pose")
+input_data = create_virtual_landmark_data(input_data, target="pose")
 
 # Maak de landmarks in de scene
-create_landmarks(input_data, sample_rate=20)
+create_landmarks(input_data, sample_rate=5)
 
 # Maak de bone structure die bij de punten hoort.
 create_armature(target="pose")
 
-# map_rotation(mapping=unreal_mapping)
+map_rotation(mapping=pose_point_mapping_readyplayerme, source_armature="motion_capture_armature")
