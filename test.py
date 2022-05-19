@@ -45,26 +45,27 @@ hand_bone_structure = [
 ]
 
 hand_bone_structure_mp = [
-    ("WRIST", "THUMB_MCP"),
-        ("THUMB_MCP", "THUMB_IP"),
-            ("THUMB_IP", "THUMB_TIP"),
+    ("WRIST", "THUMB_CMC", "THUMB_0"),
+        ("THUMB_CMC", "THUMB_MCP"),
+            ("THUMB_MCP", "THUMB_IP"),
+                ("THUMB_IP", "THUMB_TIP"),
 
-    ("WRIST", "INDEX_FINGER_MCP"),
+    ("WRIST", "INDEX_FINGER_MCP", "INDEX_0"),
         ("INDEX_FINGER_MCP", "INDEX_FINGER_PIP"),
             ("INDEX_FINGER_PIP", "INDEX_FINGER_DIP"),
                 ("INDEX_FINGER_DIP", "INDEX_FINGER_TIP"),
 
-    ("WRIST", "MIDDLE_FINGER_MCP"),
+    ("WRIST", "MIDDLE_FINGER_MCP", "MIDDLE_0"),
         ("MIDDLE_FINGER_MCP", "MIDDLE_FINGER_PIP"),
             ("MIDDLE_FINGER_PIP", "MIDDLE_FINGER_DIP"),
                 ("MIDDLE_FINGER_DIP", "MIDDLE_FINGER_TIP"),
 
-    ("WRIST", "RING_FINGER_MCP"),
+    ("WRIST", "RING_FINGER_MCP", "RING_0"),
         ("RING_FINGER_MCP", "RING_FINGER_PIP"),
             ("RING_FINGER_PIP", "RING_FINGER_DIP"),
                 ("RING_FINGER_DIP", "RING_FINGER_TIP"),
 
-    ("WRIST", "PINKY_MCP"),
+    ("WRIST", "PINKY_MCP", "PINKY_0"),
         ("PINKY_MCP", "PINKY_PIP"),
             ("PINKY_PIP", "PINKY_DIP"),
                 ("PINKY_DIP", "PINKY_TIP")
@@ -216,11 +217,50 @@ pose_point_mapping_readyplayerme = [
     ("RIGHT_KNEE", "RightLeg"),
     ("LEFT_KNEE", "LeftLeg"),
     ("RIGHT_ANKLE", "RightFoot"),
-    ("LEFT_ANKLE", "LeftFoot")
+    ("LEFT_ANKLE", "LeftFoot"),
+    ("LEFT_WRIST", "LeftHand"),
+    ("RIGHT_WRIST", "RightHand")
+]
+
+left_hand_point_mapping_readyplayerme = [
+    ("THUMB_0_l", "LeftHandThumb1"),
+    ("THUMB_CMC_l", "LeftHandThumb2"),
+    ("THUMB_MCP_l", "LeftHandThumb3"),
+    ("INDEX_FINGER_MCP_l", "LeftHandIndex1"),
+    ("INDEX_FINGER_PIP_l", "LeftHandIndex2"),
+    ("INDEX_FINGER_DIP_l", "LeftHandIndex3"),
+    ("MIDDLE_FINGER_MCP_l", "LeftHandMiddle1"),
+    ("MIDDLE_FINGER_PIP_l", "LeftHandMiddle2"),
+    ("MIDDLE_FINGER_DIP_l", "LeftHandMiddle3"),
+    ("RING_FINGER_MCP_l", "LeftHandRing1"),
+    ("RING_FINGER_PIP_l", "LeftHandRing2"),
+    ("RING_FINGER_DIP_l", "LeftHandRing3"),
+    ("PINKY_MCP_l", "LeftHandPinky1"),
+    ("PINKY_PIP_l", "LeftHandPinky2"),
+    ("PINKY_DIP_l", "LeftHandPinky3")
+]
+
+right_hand_point_mapping_readyplayerme = [
+    ("THUMB_0_r", "RightHandThumb1"),
+    ("THUMB_CMC_r", "RightHandThumb2"),
+    ("THUMB_MCP_r", "RightHandThumb3"),
+    ("INDEX_FINGER_MCP_r", "RightHandIndex1"),
+    ("INDEX_FINGER_PIP_r", "RightHandIndex2"),
+    ("INDEX_FINGER_DIP_r", "RightHandIndex3"),
+    ("MIDDLE_FINGER_MCP_r", "RightHandMiddle1"),
+    ("MIDDLE_FINGER_PIP_r", "RightHandMiddle2"),
+    ("MIDDLE_FINGER_DIP_r", "RightHandMiddle3"),
+    ("RING_FINGER_MCP_r", "RightHandRing1"),
+    ("RING_FINGER_PIP_r", "RightHandRing2"),
+    ("RING_FINGER_DIP_r", "RightHandRing3"),
+    ("PINKY_MCP_r", "RightHandPinky1"),
+    ("PINKY_PIP_r", "RightHandPinky2"),
+    ("PINKY_DIP_r", "RightHandPinky3")
 ]
 
 
 unreal_mapping = hand_point_mapping_metahuman + pose_point_mapping_metahuman
+readyplayerme_mapping = pose_point_mapping_readyplayerme + left_hand_point_mapping_readyplayerme
 
 
 def map_rotation(source_armature="motion_capture_armature", target_rig="Armature", mapping=pose_point_mapping_readyplayerme):
@@ -272,7 +312,7 @@ def create_landmarks(data, last_char = "", sample_rate=1):
         name = name + last_char
 
         if(isObjectInScene(name) != True):
-            bpy.ops.mesh.primitive_ico_sphere_add(enter_editmode=False, radius=0.1)
+            bpy.ops.mesh.primitive_ico_sphere_add(enter_editmode=False, radius=0.01)
             bpy.context.object.name = name
 
         # Have the counter start one before the sample rate,
@@ -353,6 +393,13 @@ def create_armature(name = "motion_capture_armature", last_char = "", target="ha
         bpy.ops.armature.bone_primitive_add(name=bone_name)
 
         bpy.ops.object.mode_set(mode='POSE')
+
+        if(target == "hand"):
+            armature.pose.bones[bone_name].scale[0] = 0.1
+            armature.pose.bones[bone_name].scale[1] = 0.1
+            armature.pose.bones[bone_name].scale[2] = 0.1
+
+
         bone_constraint = armature.pose.bones[bone_name].constraints.new('COPY_LOCATION')
         bone_constraint.target = bpy.data.objects[parent_name]
 
@@ -392,12 +439,18 @@ def csv_to_arrays(csv_file, target="hand"):
             y = float(frame[2]) # depth
             z = 1 - float(frame[1]) # height
             # if(x > 0.001 and x < 1 and y > 0.001 and y < 1):
-            if(x > 0.001):
-                # print(f"{name}: x, y, z: {x}, {y}, {z}")
-                keyframes.append((x, y, z))
+            if target == "hand":
+                if(x > 0.001 and x < 1):
+                    keyframes.append((x, y, z))
+                else:
+                    keyframes.append((0, 0, 0))
             else:
-                # print(f"{name}: x, y, z: 0.0, 0.0, 0.0")
-                keyframes.append((0.0, 0.0, 0.0))
+                if(x > 0.001):
+                    # print(f"{name}: x, y, z: {x}, {y}, {z}")
+                    keyframes.append((x, y, z))
+                else:
+                    # print(f"{name}: x, y, z: 0.0, 0.0, 0.0")
+                    keyframes.append((0.0, 0.0, 0.0))
         output.append((name, keyframes))
 
     return output
@@ -408,16 +461,24 @@ def rotate_bvh_armatures(armature="f_med_nrw_body"):
 
 
 # create_armature(name="hand", last_char="_r")
-# input_data = csv_to_arrays("mediapipe_data/LEFT_HandLandmarks.csv")
+input_data = csv_to_arrays("mediapipe_data/LEFT_HandLandmarks.csv")
+# Maak de landmarks in de scene
+create_landmarks(input_data, last_char="_l", sample_rate=1)
+
+input_data = csv_to_arrays("mediapipe_data/RIGHT_HandLandmarks.csv")
+create_landmarks(input_data, last_char="_r", sample_rate=1)
 
 # Maak arrays van de csv data
 input_data = csv_to_arrays("mediapipe_data/POSELandmarks.csv", target="pose")
 input_data = create_virtual_landmark_data(input_data, target="pose")
+create_landmarks(input_data, sample_rate=3)
 
-# Maak de landmarks in de scene
-create_landmarks(input_data, sample_rate=5)
 
 # Maak de bone structure die bij de punten hoort.
+create_armature(target="hand", last_char="_l")
+create_armature(target="hand", last_char="_r")
 create_armature(target="pose")
 
 map_rotation(mapping=pose_point_mapping_readyplayerme, source_armature="motion_capture_armature")
+map_rotation(mapping=left_hand_point_mapping_readyplayerme, source_armature="motion_capture_armature_l")
+map_rotation(mapping=right_hand_point_mapping_readyplayerme, source_armature="motion_capture_armature_r")
