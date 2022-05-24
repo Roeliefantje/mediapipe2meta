@@ -170,23 +170,42 @@ pose_virtual_landmarks= [
 
 
 # Mapping from Mediapipe to the point of the MetaHuman
-hand_point_mapping_metahuman = [
-    ("WRIST", "hand"),
-    ("THUMB_CMC", "thumb_01"),
-    ("THUMB_MCP", "thumb_02"),
-    ("THUMB_IP", "thumb_03"),
-    ("INDEX_FINGER_MCP", "index_01"),
-    ("INDEX_FINGER_PIP", "index_02"),
-    ("INDEX_FINGER_DIP", "index_03"),
-    ("MIDDLE_FINGER_MCP", "middle_01"),
-    ("MIDDLE_FINGER_PIP", "middle_02"),
-    ("MIDDLE_FINGER_DIP", "middle_03"),
-    ("RING_FINGER_MCP", "ring_01_r"),
-    ("RING_FINGER_PIP", "ring_02_r"),
-    ("RING_FINGER_DIP", "ring_03_r"),
-    ("PINKY_MCP", "pinky_01_r"),
-    ("PINKY_PIP", "pinky_02_r"),
-    ("PINKY_TIP", "pinky_03_r")
+left_hand_point_mapping_metahuman = [
+    # ("WRIST", "hand"),
+    ("THUMB_CMC_l", "thumb_01_l"),
+    ("THUMB_MCP_l", "thumb_02_l"),
+    ("THUMB_IP_l", "thumb_03_l"),
+    ("INDEX_FINGER_MCP_l", "index_01_l"),
+    ("INDEX_FINGER_PIP_l", "index_02_l"),
+    ("INDEX_FINGER_DIP_l", "index_03_l"),
+    ("MIDDLE_FINGER_MCP_l", "middle_01_l"),
+    ("MIDDLE_FINGER_PIP_l", "middle_02_l"),
+    ("MIDDLE_FINGER_DIP_l", "middle_03_l"),
+    ("RING_FINGER_MCP_l", "ring_01_l"),
+    ("RING_FINGER_PIP_l", "ring_02_l"),
+    ("RING_FINGER_DIP_l", "ring_03_l"),
+    ("PINKY_MCP_l", "pinky_01_l"),
+    ("PINKY_PIP_l", "pinky_02_l"),
+    ("PINKY_TIP_l", "pinky_03_l")
+]
+
+right_hand_point_mapping_metahuman = [
+    # ("WRIST", "hand"),
+    ("THUMB_CMC_r", "thumb_01_r"),
+    ("THUMB_MCP_r", "thumb_02_r"),
+    ("THUMB_IP_r", "thumb_03_r"),
+    ("INDEX_FINGER_MCP_r", "index_01_r"),
+    ("INDEX_FINGER_PIP_r", "index_02_r"),
+    ("INDEX_FINGER_DIP_r", "index_03_r"),
+    ("MIDDLE_FINGER_MCP_r", "middle_01_r"),
+    ("MIDDLE_FINGER_PIP_r", "middle_02_r"),
+    ("MIDDLE_FINGER_DIP_r", "middle_03_r"),
+    ("RING_FINGER_MCP_r", "ring_01_r"),
+    ("RING_FINGER_PIP_r", "ring_02_r"),
+    ("RING_FINGER_DIP_r", "ring_03_r"),
+    ("PINKY_MCP_r", "pinky_01_r"),
+    ("PINKY_PIP_r", "pinky_02_r"),
+    ("PINKY_TIP_r", "pinky_03_r")
 ]
 
 # Pose point mapping
@@ -259,7 +278,7 @@ right_hand_point_mapping_readyplayerme = [
 ]
 
 
-unreal_mapping = hand_point_mapping_metahuman + pose_point_mapping_metahuman
+# unreal_mapping = hand_point_mapping_metahuman + pose_point_mapping_metahuman
 readyplayerme_mapping = pose_point_mapping_readyplayerme + left_hand_point_mapping_readyplayerme
 
 
@@ -407,6 +426,7 @@ def create_armature(name = "motion_capture_armature", last_char = "", target="ha
         bone_constraint.target = bpy.data.objects[child_name]
         bone_constraint.rest_length = 1.0
         bone_constraint.volume = 'NO_VOLUME'
+        bone_constraint.keep_axis = 'PLANE_Z'
         # bone_constraint = armature.pose.bones[child_name].constraints.new('CHILD_OF')
         # bone_constraint.target = bpy.data.objects[parent_name]
 
@@ -479,6 +499,9 @@ create_armature(target="hand", last_char="_l")
 create_armature(target="hand", last_char="_r")
 create_armature(target="pose")
 
-map_rotation(mapping=pose_point_mapping_readyplayerme, source_armature="motion_capture_armature")
-map_rotation(mapping=left_hand_point_mapping_readyplayerme, source_armature="motion_capture_armature_l")
-map_rotation(mapping=right_hand_point_mapping_readyplayerme, source_armature="motion_capture_armature_r")
+# map_rotation(mapping=pose_point_mapping_readyplayerme, source_armature="motion_capture_armature")
+# map_rotation(mapping=left_hand_point_mapping_readyplayerme, source_armature="motion_capture_armature_l")
+# map_rotation(mapping=right_hand_point_mapping_readyplayerme, source_armature="motion_capture_armature_r")
+map_rotation(mapping=pose_point_mapping_metahuman, source_armature="motion_capture_armature", target_rig="f_med_nrw_body")
+map_rotation(mapping=left_hand_point_mapping_metahuman, source_armature="motion_capture_armature_l", target_rig="f_med_nrw_body")
+map_rotation(mapping=right_hand_point_mapping_metahuman, source_armature="motion_capture_armature_r", target_rig="f_med_nrw_body")
